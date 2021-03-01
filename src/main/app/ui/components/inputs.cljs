@@ -18,58 +18,6 @@
    [app.ui.components.picker :refer [PickerComponent]]
    [app.validators :refer [get-validator-message]]))
 
-
-(defn get-element-props
-  [default-props props]
-  (let [element-props (into {} (filter (fn [[k v]] (simple-keyword? k)) props))]
-    (reduce-kv
-     (fn [m k v]
-       (let [prev-v (get k m)
-             val (cond (and (fn? prev-v) (fn? v))
-                       (fn [& args] (apply prev-v args) (apply v args))
-                       (and (= :class k) (:class m)) (flatten [v (:class m)])
-                       :else v)]
-         (assoc m k val)))
-     default-props
-     element-props)))
-
-;; ERRORS
-(defnc ErrorsRenderer [{:keechma.form/keys [controller]
-                        :input/keys        [attr]
-                        :as                props}]
-  (let [errors-getter (hooks/use-callback [attr] #(form/get-errors-in % attr))
-        errors (use-meta-sub props controller errors-getter)]
-    (when-let [errors' (get-in errors [:$errors$ :failed])]
-      ($ View {:style {:color "red" :width "100%" :font-size 20}}
-         (map-indexed (fn [i e] ($ Text {:key i} (get-validator-message e)))
-                      errors')))))
-
-(def Errors (with-keechma ErrorsRenderer))
-
-;; TEXT
-(defnc TextInputRenderer [{:keechma.form/keys [controller]
-                           :input/keys        [attr]
-                           :as                props}]
-  (let [element-props (get-element-props {} props)(ns app.ui.components.inputs
-                                                    (:require
-                                                     ["react-native" :refer [View TextInput Text Animated TouchableOpacity]]
-                                                     ["react-native-check-box" :default CheckBox]
-                                                     [keechma.next.helix.core :refer [with-keechma use-meta-sub dispatch]]
-                                                     [app.lib :refer [$ defnc convert-style]]
-                                                     [helix.dom :as d]
-                                                     [helix.hooks :as hooks]
-                                                     [oops.core :refer [ocall oget oset!]]
-                                                     [keechma.next.controllers.router :as router]
-                                                     [app.tailwind :refer [tw]]
-                                                     ["react" :as react]
-                                                     [app.rn.animated :as animated]
-                                                     ["react-dom" :as rdom]
-                                                     [app.ui.svgs :refer [Svg]]
-                                                     [app.utils.os-utils :refer [is-ios]]
-                                                     [keechma.next.controllers.form :as form]
-                                                     [app.ui.components.picker :refer [PickerComponent]]
-                                                     [app.validators :refer [get-validator-message]]))
-
 (defn get-element-props
   [default-props props]
   (let [element-props (into {} (filter (fn [[k v]] (simple-keyword? k)) props))]
@@ -97,7 +45,6 @@
                       errors')))))
 
 (def Errors (with-keechma ErrorsRenderer))
-
 
 ;; TEXT
 (defnc TextInputRenderer [{:keechma.form/keys [controller]
@@ -145,7 +92,9 @@
 
 (def Select (with-keechma SelectRenderer))
 
-;;__________________________________________________________________________
+
+;;___________________________________________________________________________
+
 
 (def Checkbox (with-keechma CheckboxRenderer))
 
@@ -186,20 +135,5 @@
   ($ AnimatedView {:style [(tw :w-full)
                            {:animation/top (:top props)
                             :animation/opacity (:opacity props)}]}
-     (input props)
-     ($ Errors {& props})))
-        value-getter (hooks/use-callback [attr] #(form/get-data-in % attr))
-        value (use-meta-sub props controller value-getter)]))
-
-(def InputText (with-keechma TextInputRenderer))
-
-(defmulti input (fn [props] (:input/type props)))
-(defmethod input :text     [props] ($ InputText {& props}))
-
-(defmulti wrapped-input (fn [props] (:input/type props)))
-(defmethod wrapped-input :default [props] (input props))
-
-(defmethod wrapped-input :text [props]
-  ($ View {:style [(tw :w-full)]}
      (input props)
      ($ Errors {& props})))
